@@ -207,17 +207,17 @@ th.sortable:not(.asc):not(.desc) .sa::after{content:'⇅';}
 <header>
   <div class="logo">J2L FLOW</div>
   <div class="header-center">
-    <button class="main-tab active" onclick="switchTab('wh',this)">📦 자재창고 현황</button>
-    <button class="main-tab"        onclick="switchTab('dr',this)">📊 출고율 분석</button>
+    <button class="main-tab active" data-tab="wh">📦 자재창고 현황</button>
+    <button class="main-tab"        data-tab="dr">📊 출고율 분석</button>
   </div>
   <div class="header-right">
     <span class="last-upd" id="last-upd-wh" style="display:none"></span>
     <span class="last-upd" id="last-upd-dr" style="display:none"></span>
     <!-- 자재창고 버튼 -->
-    <button class="hbtn" id="btn-wh-json" onclick="document.getElementById('wh-json').click()">📁 JSON 로드</button>
+    <button class="hbtn" id="btn-wh-json">📁 JSON 로드</button>
     <!-- 출고율 버튼 -->
-    <button class="hbtn" id="btn-dr-excel" style="display:none" onclick="document.getElementById('dr-excel').click()">📂 Excel 로드</button>
-    <button class="hbtn" id="btn-dr-json"  style="display:none" onclick="document.getElementById('dr-json').click()">📁 JSON 로드</button>
+    <button class="hbtn" id="btn-dr-excel" style="display:none">📂 Excel 로드</button>
+    <button class="hbtn" id="btn-dr-json"  style="display:none">📁 JSON 로드</button>
     <input type="file" id="wh-json"  accept=".json">
     <input type="file" id="dr-excel" accept=".xlsx,.xls,.csv">
     <input type="file" id="dr-json"  accept=".json">
@@ -246,7 +246,7 @@ th.sortable:not(.asc):not(.desc) .sa::after{content:'⇅';}
       <option value="출고">출고</option>
     </select>
     <div class="fsep"></div>
-    <button class="freset" onclick="whResetFilters()">✕ 초기화</button>
+    <button class="freset" id="wh-reset-btn">✕ 초기화</button>
   </div>
 
   <div class="main">
@@ -301,10 +301,10 @@ th.sortable:not(.asc):not(.desc) .sa::after{content:'⇅';}
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <input type="text" class="sbox" id="wh-inv-search" placeholder="자재명·코드 검색…" style="width:170px;padding:5px 10px;font-size:12px;">
           <div class="itabs">
-            <div class="itab active" data-inv="all"      onclick="whSetInvTab('all',this)">전체</div>
-            <div class="itab"        data-inv="shortage" onclick="whSetInvTab('shortage',this)">부족</div>
-            <div class="itab"        data-inv="excess"   onclick="whSetInvTab('excess',this)">과잉</div>
-            <div class="itab"        data-inv="ok"       onclick="whSetInvTab('ok',this)">정상</div>
+            <div class="itab active" data-inv="all">전체</div>
+            <div class="itab"        data-inv="shortage">부족</div>
+            <div class="itab"        data-inv="excess">과잉</div>
+            <div class="itab"        data-inv="ok">정상</div>
           </div>
         </div>
       </div>
@@ -346,7 +346,7 @@ th.sortable:not(.asc):not(.desc) .sa::after{content:'⇅';}
       <option value="full">완전출고 (100%)</option>
     </select>
     <div class="fsep"></div>
-    <button class="freset" onclick="drResetFilters()">✕ 초기화</button>
+    <button class="freset" id="dr-reset-btn">✕ 초기화</button>
   </div>
 
   <!-- 컬럼 매핑 패널 (Excel 로드 시) -->
@@ -355,8 +355,8 @@ th.sortable:not(.asc):not(.desc) .sa::after{content:'⇅';}
       <div style="font-size:13px;font-weight:700;color:var(--accent);letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px;">컬럼 매핑 확인</div>
       <div id="dr-mapping-rows" style="display:flex;flex-direction:column;gap:10px;"></div>
       <div style="display:flex;gap:8px;margin-top:16px;">
-        <button class="hbtn" onclick="drApplyMapping()" style="background:var(--accent);color:#fff;border-color:var(--accent);">▶ 적용</button>
-        <button class="freset" onclick="drResetMapping()">↺ 다시 선택</button>
+        <button class="hbtn" id="dr-apply-mapping-btn" style="background:var(--accent);color:#fff;border-color:var(--accent);">▶ 적용</button>
+        <button class="freset" id="dr-reset-mapping-btn">↺ 다시 선택</button>
       </div>
     </div>
   </div>
@@ -382,10 +382,10 @@ th.sortable:not(.asc):not(.desc) .sa::after{content:'⇅';}
         <span>일자별 출고율 · 요청/출고 수량</span>
         <div style="display:flex;gap:8px;align-items:center;">
           <select id="dr-trend-client" style="font-size:12px;padding:4px 8px"><option value="">전체 고객사</option></select>
-          <div class="itabs">
-            <div class="itab"        onclick="drSetTrendView('rate',this)">출고율</div>
-            <div class="itab"        onclick="drSetTrendView('qty',this)">수량</div>
-            <div class="itab active" onclick="drSetTrendView('both',this)">복합</div>
+          <div class="itabs" id="dr-trend-tabs">
+            <div class="itab"        data-tv="rate">출고율</div>
+            <div class="itab"        data-tv="qty">수량</div>
+            <div class="itab active" data-tv="both">복합</div>
           </div>
         </div>
       </div>
@@ -416,25 +416,25 @@ th.sortable:not(.asc):not(.desc) .sa::after{content:'⇅';}
         <span>일자 × 자재 출고 현황</span>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <input type="text" class="sbox" id="dr-tbl-search" placeholder="자재명·코드 검색…" style="width:170px;">
-          <div class="itabs">
-            <div class="itab active" data-rt="all"  onclick="drSetRateTab('all',this)">전체</div>
-            <div class="itab"        data-rt="low"  onclick="drSetRateTab('low',this)">부족</div>
-            <div class="itab"        data-rt="mid"  onclick="drSetRateTab('mid',this)">주의</div>
-            <div class="itab"        data-rt="full" onclick="drSetRateTab('full',this)">완전출고</div>
+          <div class="itabs" id="dr-rate-tabs">
+            <div class="itab active" data-rt="all">전체</div>
+            <div class="itab"        data-rt="low">부족</div>
+            <div class="itab"        data-rt="mid">주의</div>
+            <div class="itab"        data-rt="full">완전출고</div>
           </div>
         </div>
       </div>
       <div style="overflow-x:auto">
         <table class="dtbl" id="dr-detail-table">
           <thead><tr>
-            <th class="sortable" data-col="date"       onclick="drSort('date')">일자<span class="sa"></span></th>
-            <th class="sortable" data-col="client"     onclick="drSort('client')">고객사<span class="sa"></span></th>
-            <th class="sortable" data-col="partCode"   onclick="drSort('partCode')">자재코드<span class="sa"></span></th>
+            <th class="sortable" data-col="date">일자<span class="sa"></span></th>
+            <th class="sortable" data-col="client">고객사<span class="sa"></span></th>
+            <th class="sortable" data-col="partCode">자재코드<span class="sa"></span></th>
             <th>자재명</th>
-            <th class="sortable r" data-col="requested"  onclick="drSort('requested')">요청수량<span class="sa"></span></th>
-            <th class="sortable r" data-col="dispatched" onclick="drSort('dispatched')">출고수량<span class="sa"></span></th>
-            <th class="sortable r" data-col="shortage"   onclick="drSort('shortage')">미출고<span class="sa"></span></th>
-            <th class="sortable r" data-col="rate"       onclick="drSort('rate')">출고율<span class="sa"></span></th>
+            <th class="sortable r" data-col="requested">요청수량<span class="sa"></span></th>
+            <th class="sortable r" data-col="dispatched">출고수량<span class="sa"></span></th>
+            <th class="sortable r" data-col="shortage">미출고<span class="sa"></span></th>
+            <th class="sortable r" data-col="rate">출고율<span class="sa"></span></th>
             <th>상태</th>
           </tr></thead>
           <tbody id="dr-detail-tbody"></tbody>
@@ -442,7 +442,7 @@ th.sortable:not(.asc):not(.desc) .sa::after{content:'⇅';}
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
         <div style="font-size:12px;color:var(--muted)" id="dr-detail-count"></div>
-        <button class="freset" onclick="drExportCSV()" style="font-size:11px;">⬇ CSV 내보내기</button>
+        <button class="freset" id="dr-csv-btn" style="font-size:11px;">⬇ CSV 내보내기</button>
       </div>
     </div></div>
   </div>
@@ -456,21 +456,19 @@ th.sortable:not(.asc):not(.desc) .sa::after{content:'⇅';}
 //  탭 전환
 // ══════════════════════════════
 let currentTab = 'wh';
-function switchTab(tab, el) {
+function switchTab(tab) {
   currentTab = tab;
   document.querySelectorAll('.main-tab').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
+  document.querySelector(`.main-tab[data-tab="${tab}"]`).classList.add('active');
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
 
-  // 헤더 버튼 토글
   document.getElementById('last-upd-wh').style.display  = tab==='wh' ? '' : 'none';
   document.getElementById('last-upd-dr').style.display  = tab==='dr' ? '' : 'none';
   document.getElementById('btn-wh-json').style.display  = tab==='wh' ? '' : 'none';
   document.getElementById('btn-dr-excel').style.display = tab==='dr' ? '' : 'none';
   document.getElementById('btn-dr-json').style.display  = tab==='dr' ? '' : 'none';
 
-  // 탭 전환 시 차트 리사이즈
   setTimeout(() => {
     Object.values(whCharts).forEach(c => c?.resize?.());
     Object.values(drCharts).forEach(c => c?.resize?.());
@@ -956,10 +954,8 @@ function drRenderKPI(data){
   document.getElementById('dr-kpi-low').textContent=low;
   document.getElementById('dr-kpi-low-sub').textContent='종 미달';
 }
-function drSetTrendView(v,el){
+function drSetTrendView(v){
   drTrendView=v;
-  document.querySelectorAll('#tab-dr .card-title .itab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
   if(_drTrendCache)drRenderTrend(_drTrendCache);
 }
 function drRenderTrend(data){
@@ -1066,10 +1062,8 @@ function drRenderTopShortage(data){
     </div>`;
   }).join('')||'<div style="color:var(--muted);font-size:13px;text-align:center;padding:24px;">미출고 자재 없음 🎉</div>';
 }
-function drSetRateTab(tab,el){
+function drSetRateTab(tab){
   drRateTab=tab;
-  document.querySelectorAll('.itab[data-rt]').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
   drRenderDetailTable(drFiltered());
 }
 function drSort(col){
@@ -1142,12 +1136,70 @@ function commonChartOpts(){
 //  초기화
 // ══════════════════════════════
 window.addEventListener('load',()=>{
-  // 자재창고 샘플
+  // ── 메인 탭 버튼 ──
+  document.querySelectorAll('.main-tab').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+
+  // ── 헤더 파일 버튼 ──
+  document.getElementById('btn-wh-json').addEventListener('click',  () => document.getElementById('wh-json').click());
+  document.getElementById('btn-dr-excel').addEventListener('click', () => document.getElementById('dr-excel').click());
+  document.getElementById('btn-dr-json').addEventListener('click',  () => document.getElementById('dr-json').click());
+
+  // ── WH 필터 초기화 ──
+  document.getElementById('wh-reset-btn').addEventListener('click', whResetFilters);
+
+  // ── WH 재고 탭 ──
+  document.querySelectorAll('.itab[data-inv]').forEach(tab => {
+    tab.addEventListener('click', () => {
+      whInvTab = tab.dataset.inv;
+      document.querySelectorAll('.itab[data-inv]').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      whRenderInventory(whFiltered());
+    });
+  });
+
+  // ── DR 필터 초기화 ──
+  document.getElementById('dr-reset-btn').addEventListener('click', drResetFilters);
+
+  // ── DR 매핑 버튼 ──
+  document.getElementById('dr-apply-mapping-btn').addEventListener('click', drApplyMapping);
+  document.getElementById('dr-reset-mapping-btn').addEventListener('click', drResetMapping);
+
+  // ── DR 추이 탭 ──
+  document.querySelectorAll('#dr-trend-tabs .itab[data-tv]').forEach(tab => {
+    tab.addEventListener('click', () => {
+      drTrendView = tab.dataset.tv;
+      document.querySelectorAll('#dr-trend-tabs .itab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      if (_drTrendCache) drRenderTrend(_drTrendCache);
+    });
+  });
+
+  // ── DR 출고율 탭 ──
+  document.querySelectorAll('#dr-rate-tabs .itab[data-rt]').forEach(tab => {
+    tab.addEventListener('click', () => {
+      drRateTab = tab.dataset.rt;
+      document.querySelectorAll('#dr-rate-tabs .itab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      drRenderDetailTable(drFiltered());
+    });
+  });
+
+  // ── DR 테이블 정렬 ──
+  document.querySelectorAll('#dr-detail-table th.sortable').forEach(th => {
+    th.addEventListener('click', () => drSort(th.dataset.col));
+  });
+
+  // ── DR CSV ──
+  document.getElementById('dr-csv-btn').addEventListener('click', drExportCSV);
+
+  // ── 자재창고 샘플 ──
   WH_ALL=whMakeSample();
   whInitFilters(); whRender();
   document.getElementById('last-upd-wh').textContent='샘플 데이터';
 
-  // 출고율 샘플
+  // ── 출고율 샘플 ──
   const drClients=['쿠쿠전자','드롱기코리아','삼성전자','위니아'];
   const drParts=[{code:'P-1001',name:'필터 어셈블리 A형'},{code:'P-1002',name:'필터 어셈블리 B형'},{code:'P-2001',name:'히터 코일 유닛'},{code:'P-2002',name:'서미스터 NTC'},{code:'P-3001',name:'메인보드 PWB'},{code:'P-3002',name:'디스플레이 기판'},{code:'P-4001',name:'압력 스위치'},{code:'P-5001',name:'실리콘 패킹 세트'}];
   const now=new Date(); DR_ALL=[];
