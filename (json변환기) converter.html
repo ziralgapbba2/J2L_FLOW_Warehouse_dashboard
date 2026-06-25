@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>자재창고 데이터 변환기 | J2L FLOW</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3347;
+    --accent: #4f8ef7;
+    --accent2: #7c5cbf;
+    --ok: #34c97b;
+    --warn: #f5a623;
+    --danger: #e8445a;
+    --text: #e8eaf0;
+    --muted: #7a80a0;
+    --font: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+
+  header {
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 14px;
+  }
+  .logo { font-size: 13px; font-weight: 700; letter-spacing: .12em; color: var(--accent); text-transform: uppercase; }
+  .page-title { font-size: 15px; color: var(--muted); }
+
+  .container { max-width: 860px; margin: 0 auto; padding: 40px 24px; }
+
+  h1 { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+  .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 36px; }
+
+  /* 컬럼 매핑 카드 */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card-title {
+    font-size: 12px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 18px;
+  }
+
+  /* 드래그앤드롭 업로드 */
+  .dropzone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+  }
+  .dropzone:hover, .dropzone.drag-over {
+    border-color: var(--accent);
+    background: rgba(79,142,247,.06);
+  }
+  .dropzone .icon { font-size: 36px; margin-bottom: 12px; }
+  .dropzone p { color: var(--muted); font-size: 14px; }
+  .dropzone strong { color: var(--text); }
+  input[type=file] { display: none; }
+
+  /* 컬럼 매핑 */
+  .mapping-grid {
+    display: grid;
+    grid-template-columns: 1fr 32px 1fr;
+    gap: 10px 8px;
+    align-items: center;
+  }
+  .mapping-grid .head {
+    font-size: 11px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .08em; padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .arrow { text-align: center; color: var(--muted); font-size: 14px; }
+  .field-label {
+    font-size: 13px; font-weight: 600; color: var(--text);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .field-label .badge {
+    font-size: 10px; padding: 2px 6px; border-radius: 4px;
+    background: rgba(79,142,247,.15); color: var(--accent);
+  }
+  .field-label .badge.opt {
+    background: rgba(122,128,160,.15); color: var(--muted);
+  }
+  select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13px;
+    padding: 8px 12px;
+    outline: none;
+    cursor: pointer;
+  }
+  select:focus { border-color: var(--accent); }
+
+  /* 미리보기 테이블 */
+  .preview-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    text-align: left; padding: 8px 12px;
+    background: var(--surface2);
+    color: var(--muted); font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .06em;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,.02); }
+
+  /* 통계 뱃지 */
+  .stats-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .stat-chip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+  .stat-chip span { color: var(--accent); font-weight: 700; font-size: 16px; margin-right: 4px; }
+
+  /* 버튼 */
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 11px 22px; border-radius: 8px;
+    font-family: var(--font); font-size: 14px; font-weight: 600;
+    cursor: pointer; border: none; transition: all .15s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #3a7de8; }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-ok { background: var(--ok); color: #fff; }
+  .btn-ok:hover { background: #28b36c; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+
+  /* 로그 */
+  .log {
+    background: #090b10;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    font-family: monospace;
+    font-size: 12px;
+    color: var(--ok);
+    max-height: 160px;
+    overflow-y: auto;
+    line-height: 1.7;
+  }
+  .log .err { color: var(--danger); }
+  .log .warn { color: var(--warn); }
+  .log .info { color: var(--muted); }
+
+  /* 진행바 */
+  .progress-bar {
+    height: 4px; background: var(--border); border-radius: 2px;
+    margin: 12px 0; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; background: var(--accent);
+    border-radius: 2px; transition: width .3s;
+    width: 0%;
+  }
+
+  /* 숨김 */
+  .hidden { display: none !important; }
+
+  /* 안내 섹션 */
+  .guide { display: flex; gap: 10px; margin-bottom: 24px; }
+  .guide-step {
+    flex: 1; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; text-align: center;
+  }
+  .guide-step .num {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: rgba(79,142,247,.15); color: var(--accent);
+    font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 10px;
+  }
+  .guide-step p { font-size: 12px; color: var(--muted); }
+  .guide-step strong { display: block; font-size: 13px; color: var(--text); margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">J2L FLOW</div>
+  <div style="color:var(--border)">|</div>
+  <div class="page-title">서비스자재창고 · 데이터 변환기</div>
+</header>
+
+<div class="container">
+  <h1>Excel → JSON 변환기</h1>
+  <p class="subtitle">자재 사용량 엑셀 파일을 대시보드용 JSON으로 변환합니다.</p>
+
+  <!-- 단계 안내 -->
+  <div class="guide">
+    <div class="guide-step">
+      <div class="num">1</div>
+      <strong>파일 업로드</strong>
+      <p>Excel 파일을 드래그하거나 클릭해서 선택</p>
+    </div>
+    <div class="guide-step">
+      <div class="num">2</div>
+      <strong>컬럼 매핑</strong>
+      <p>엑셀 컬럼을 시스템 필드에 연결</p>
+    </div>
+    <div class="guide-step">
+      <div class="num">3</div>
+      <strong>JSON 저장</strong>
+      <p>변환된 파일을 다운로드</p>
+    </div>
+  </div>
+
+  <!-- STEP 1: 파일 업로드 -->
+  <div class="card" id="step-upload">
+    <div class="card-title">① 파일 업로드</div>
+    <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+      <div class="icon">📂</div>
+      <p><strong>클릭하거나 파일을 끌어다 놓으세요</strong></p>
+      <p style="margin-top:6px">.xlsx / .xls / .csv 지원</p>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+  </div>
+
+  <!-- STEP 2: 컬럼 매핑 -->
+  <div class="card hidden" id="step-mapping">
+    <div class="card-title">② 컬럼 매핑</div>
+    <div class="stats-row" id="file-stats"></div>
+
+    <div class="mapping-grid">
+      <div class="head">시스템 필드</div>
+      <div></div>
+      <div class="head">엑셀 컬럼</div>
+    </div>
+
+    <div id="mapping-rows"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="runConvert()">▶ 변환 시작</button>
+      <button class="btn btn-secondary" onclick="resetAll()">↺ 초기화</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: 결과 -->
+  <div class="card hidden" id="step-result">
+    <div class="card-title">③ 변환 결과</div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="log" id="log"></div>
+    <div class="btn-row" id="result-btns" style="display:none"></div>
+  </div>
+
+  <!-- 미리보기 -->
+  <div class="card hidden" id="step-preview">
+    <div class="card-title">데이터 미리보기 (상위 10행)</div>
+    <div class="preview-wrap">
+      <table id="preview-table"></table>
+    </div>
+  </div>
+</div>
+
+<script>
+// 시스템 필드 정의
+const FIELDS = [
+  { key: 'date',         label: '날짜',         badge: '필수', opt: false },
+  { key: 'client',       label: '고객사',        badge: '필수', opt: false },
+  { key: 'partCode',     label: '자재코드',       badge: '필수', opt: false },
+  { key: 'partName',     label: '자재명',         badge: '필수', opt: false },
+  { key: 'usage',        label: '사용량',         badge: '필수', opt: false },
+  { key: 'stockCurrent', label: '현재고',         badge: '선택', opt: true },
+  { key: 'stockTarget',  label: '적정재고수량',    badge: '선택', opt: true },
+  { key: 'unit',         label: '단위',           badge: '선택', opt: true },
+  { key: 'category',     label: '자재 분류',       badge: '선택', opt: true },
+];
+
+let rawData = [];
+let headers = [];
+let convertedData = [];
+
+// 드래그앤드롭
+const dz = document.getElementById('dropzone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) loadFile(f);
+});
+document.getElementById('fileInput').addEventListener('change', e => {
+  if (e.target.files[0]) loadFile(e.target.files[0]);
+});
+
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    if (json.length < 2) { alert('데이터가 없습니다.'); return; }
+
+    headers = json[0].map(String);
+    rawData = json.slice(1).filter(r => r.some(c => c !== ''));
+
+    showStats(file.name, rawData.length, headers.length);
+    buildMappingUI();
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function showStats(name, rows, cols) {
+  document.getElementById('file-stats').innerHTML = `
+    <div class="stat-chip">파일 <span>${name}</span></div>
+    <div class="stat-chip">행 <span>${rows.toLocaleString()}</span>개</div>
+    <div class="stat-chip">컬럼 <span>${cols}</span>개</div>
+  `;
+  document.getElementById('step-mapping').classList.remove('hidden');
+  document.getElementById('step-upload').style.opacity = '.5';
+}
+
+function buildMappingUI() {
+  const container = document.getElementById('mapping-rows');
+  container.innerHTML = '';
+
+  FIELDS.forEach(field => {
+    const row = document.createElement('div');
+    row.className = 'mapping-grid';
+    row.style.marginTop = '10px';
+
+    // 자동 매핑: 유사한 이름 찾기
+    const autoIdx = autoMatch(field.key, field.label);
+
+    row.innerHTML = `
+      <div class="field-label">
+        ${field.label}
+        <span class="badge ${field.opt ? 'opt' : ''}">${field.badge}</span>
+      </div>
+      <div class="arrow">→</div>
+      <select id="map_${field.key}">
+        <option value="">— 선택 안 함 —</option>
+        ${headers.map((h, i) => `<option value="${i}" ${i === autoIdx ? 'selected' : ''}>${h}</option>`).join('')}
+      </select>
+    `;
+    container.appendChild(row);
+  });
+
+  // 미리보기
+  buildPreview();
+}
+
+function autoMatch(key, label) {
+  const synonyms = {
+    date:         ['날짜', '일자', 'date', '처리일', '출고일', '입력일'],
+    client:       ['고객사', '고객', '업체', 'client', '회사'],
+    partCode:     ['자재코드', '품번', '부품코드', 'partcode', 'code', '코드'],
+    partName:     ['자재명', '품명', '부품명', '자재이름', 'partname', 'name', '품목명'],
+    usage:        ['사용량', '출고량', '출고수량', '수량', 'usage', 'qty', '사용수량'],
+    stockCurrent: ['현재고', '현재고수량', '재고', '재고량', 'stock', '현재수량'],
+    stockTarget:  ['적정재고', '적정재고수량', '목표재고', '안전재고', 'target'],
+    unit:         ['단위', 'unit', 'ea', 'pcs'],
+    category:     ['분류', '카테고리', '구분', 'category', '자재분류'],
+  };
+  const kw = synonyms[key] || [label];
+  return headers.findIndex(h =>
+    kw.some(k => h.replace(/\s/g,'').toLowerCase().includes(k.toLowerCase()))
+  );
+}
+
+function buildPreview() {
+  const table = document.getElementById('preview-table');
+  const preview = rawData.slice(0, 10);
+  table.innerHTML = `
+    <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+    <tbody>${preview.map(r => `<tr>${headers.map((_, i) => `<td>${r[i] ?? ''}</td>`).join('')}</tr>`).join('')}</tbody>
+  `;
+  document.getElementById('step-preview').classList.remove('hidden');
+}
+
+function getMapping() {
+  const m = {};
+  FIELDS.forEach(f => {
+    const v = document.getElementById(`map_${f.key}`)?.value;
+    if (v !== '') m[f.key] = parseInt(v);
+  });
+  return m;
+}
+
+function runConvert() {
+  const mapping = getMapping();
+  const required = FIELDS.filter(f => !f.opt).map(f => f.key);
+  const missing = required.filter(k => mapping[k] === undefined);
+  if (missing.length) {
+    alert(`필수 필드를 매핑해주세요: ${missing.map(k => FIELDS.find(f=>f.key===k).label).join(', ')}`);
+    return;
+  }
+
+  document.getElementById('step-result').classList.remove('hidden');
+  const log = document.getElementById('log');
+  const fill = document.getElementById('progress-fill');
+  log.innerHTML = '';
+
+  function addLog(msg, cls='') {
+    log.innerHTML += `<div class="${cls}">${msg}</div>`;
+    log.scrollTop = log.scrollHeight;
+  }
+
+  addLog(`[INFO] 변환 시작 — ${rawData.length.toLocaleString()}행`, 'info');
+
+  convertedData = [];
+  let errors = 0;
+  const total = rawData.length;
+
+  // 청크 처리 (UI 블로킹 방지)
+  let i = 0;
+  function chunk() {
+    const end = Math.min(i + 500, total);
+    for (; i < end; i++) {
+      const row = rawData[i];
+      try {
+        const obj = {};
+        FIELDS.forEach(f => {
+          if (mapping[f.key] !== undefined) {
+            let val = row[mapping[f.key]];
+            // 날짜 처리
+            if (f.key === 'date') {
+              if (val instanceof Date) {
+                val = val.toISOString().slice(0, 10);
+              } else if (typeof val === 'number') {
+                // Excel 시리얼 날짜
+                const d = XLSX.SSF.parse_date_code(val);
+                val = `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+              } else {
+                val = String(val).trim();
+              }
+            }
+            // 숫자 처리
+            if (['usage','stockCurrent','stockTarget'].includes(f.key)) {
+              val = parseFloat(String(val).replace(/,/g, '')) || 0;
+            }
+            obj[f.key] = val;
+          }
+        });
+        convertedData.push(obj);
+      } catch(e) {
+        errors++;
+        if (errors <= 3) addLog(`[WARN] ${i+1}행 오류: ${e.message}`, 'warn');
+      }
+    }
+    fill.style.width = `${Math.round(i/total*100)}%`;
+
+    if (i < total) {
+      requestAnimationFrame(chunk);
+    } else {
+      finish();
+    }
+  }
+  chunk();
+
+  function finish() {
+    addLog(`[OK] 변환 완료: ${convertedData.length.toLocaleString()}건 성공, 오류 ${errors}건`);
+
+    // 집계 정보
+    const clients = [...new Set(convertedData.map(d => d.client))];
+    const parts = [...new Set(convertedData.map(d => d.partCode))];
+    const months = [...new Set(convertedData.map(d => (d.date||'').slice(0,7)))].sort();
+    addLog(`[INFO] 고객사 ${clients.length}개 | 자재 ${parts.length}종 | ${months[0] || '?'} ~ ${months[months.length-1] || '?'}`, 'info');
+
+    // 다운로드 버튼
+    const rb = document.getElementById('result-btns');
+    rb.style.display = 'flex';
+    rb.innerHTML = `
+      <button class="btn btn-ok" onclick="downloadJSON('warehouse_data.json')">⬇ JSON 다운로드</button>
+      <button class="btn btn-secondary" onclick="downloadJSON('warehouse_data_min.json', true)">⬇ 압축 JSON</button>
+    `;
+  }
+}
+
+function downloadJSON(filename, minify=false) {
+  const json = minify
+    ? JSON.stringify(convertedData)
+    : JSON.stringify(convertedData, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function resetAll() {
+  rawData = []; headers = []; convertedData = [];
+  document.getElementById('step-mapping').classList.add('hidden');
+  document.getElementById('step-result').classList.add('hidden');
+  document.getElementById('step-preview').classList.add('hidden');
+  document.getElementById('step-upload').style.opacity = '1';
+  document.getElementById('fileInput').value = '';
+}
+</script>
+</body>
+</html>
