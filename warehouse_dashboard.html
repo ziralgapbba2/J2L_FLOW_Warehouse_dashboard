@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>서비스자재창고 대시보드 | J2L FLOW</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3347;
+    --accent: #4f8ef7;
+    --accent2: #a07cf5;
+    --ok: #34c97b;
+    --warn: #f5a623;
+    --danger: #e8445a;
+    --text: #e8eaf0;
+    --muted: #7a80a0;
+    --font: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+
+  /* ── 헤더 ── */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 28px;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(15,17,23,.92);
+    backdrop-filter: blur(10px);
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .logo { font-size: 13px; font-weight: 800; letter-spacing: .12em; color: var(--accent); }
+  .page-name { font-size: 14px; color: var(--muted); }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  .upload-btn {
+    display: flex; align-items: center; gap: 7px;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px;
+    padding: 8px 14px; font-family: var(--font); font-size: 13px;
+    cursor: pointer; transition: all .15s;
+  }
+  .upload-btn:hover { border-color: var(--accent); color: var(--accent); }
+  input[type=file] { display: none; }
+  .last-update { font-size: 11px; color: var(--muted); }
+
+  /* ── 필터바 ── */
+  .filterbar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 14px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .filterbar label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  select, input[type=month] {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13px;
+    padding: 6px 10px;
+    outline: none;
+    cursor: pointer;
+  }
+  select:focus, input[type=month]:focus { border-color: var(--accent); }
+  .filter-sep { width: 1px; height: 20px; background: var(--border); }
+  .filter-reset {
+    background: none; border: 1px solid var(--border);
+    color: var(--muted); border-radius: 6px;
+    padding: 6px 12px; font-family: var(--font); font-size: 12px;
+    cursor: pointer; transition: all .15s;
+  }
+  .filter-reset:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* ── 레이아웃 ── */
+  .main { padding: 24px 28px; }
+
+  /* KPI 카드 */
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    position: relative; overflow: hidden;
+  }
+  .kpi::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  }
+  .kpi.blue::before { background: var(--accent); }
+  .kpi.purple::before { background: var(--accent2); }
+  .kpi.green::before { background: var(--ok); }
+  .kpi.red::before { background: var(--danger); }
+
+  .kpi-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
+  .kpi-value { font-size: 30px; font-weight: 800; line-height: 1; margin-bottom: 6px; }
+  .kpi.blue .kpi-value { color: var(--accent); }
+  .kpi.purple .kpi-value { color: var(--accent2); }
+  .kpi.green .kpi-value { color: var(--ok); }
+  .kpi.red .kpi-value { color: var(--danger); }
+  .kpi-sub { font-size: 12px; color: var(--muted); }
+
+  /* 섹션 타이틀 */
+  .section-title {
+    font-size: 12px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--accent);
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* 카드 */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    height: 100%;
+  }
+  .card-title {
+    font-size: 13px; font-weight: 700; color: var(--text);
+    margin-bottom: 16px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  /* 그리드 */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
+  .grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 18px; }
+  .grid-full { margin-bottom: 18px; }
+
+  /* 차트 */
+  .chart-wrap { position: relative; }
+
+  /* 재고 상태 테이블 */
+  .inv-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .inv-table th {
+    text-align: left; padding: 8px 10px;
+    font-size: 11px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .05em;
+    border-bottom: 1px solid var(--border);
+  }
+  .inv-table td { padding: 9px 10px; border-bottom: 1px solid rgba(46,51,71,.5); }
+  .inv-table tr:last-child td { border-bottom: none; }
+  .inv-table tr:hover td { background: rgba(255,255,255,.02); }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 700;
+  }
+  .badge.danger { background: rgba(232,68,90,.15); color: var(--danger); }
+  .badge.warn { background: rgba(245,166,35,.15); color: var(--warn); }
+  .badge.ok { background: rgba(52,201,123,.15); color: var(--ok); }
+  .badge.over { background: rgba(160,124,245,.15); color: var(--accent2); }
+
+  /* 재고 바 */
+  .stock-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .stock-bar { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .stock-fill { height: 100%; border-radius: 3px; transition: width .3s; }
+  .stock-pct { font-size: 11px; color: var(--muted); min-width: 36px; text-align: right; }
+
+  /* 고객사 바 차트 (인라인) */
+  .client-bar-list { display: flex; flex-direction: column; gap: 12px; }
+  .client-bar-item { }
+  .client-bar-head { display: flex; justify-content: space-between; margin-bottom: 5px; }
+  .client-name { font-size: 13px; font-weight: 600; }
+  .client-val { font-size: 13px; color: var(--accent); font-weight: 700; }
+  .bar-track { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 4px; transition: width .6s cubic-bezier(.4,0,.2,1); }
+
+  /* Top 자재 */
+  .top-list { display: flex; flex-direction: column; gap: 8px; }
+  .top-item {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface2); border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .top-rank { font-size: 11px; font-weight: 800; color: var(--muted); min-width: 20px; }
+  .top-rank.gold { color: #f5c842; }
+  .top-rank.silver { color: #a8b4c8; }
+  .top-rank.bronze { color: #cd7f32; }
+  .top-info { flex: 1; }
+  .top-code { font-size: 10px; color: var(--muted); }
+  .top-name { font-size: 13px; font-weight: 600; }
+  .top-qty { font-size: 16px; font-weight: 800; color: var(--accent); min-width: 56px; text-align: right; }
+
+  /* 탭 */
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+  .tab {
+    padding: 6px 14px; border-radius: 6px;
+    font-size: 12px; font-weight: 700;
+    cursor: pointer; border: 1px solid transparent;
+    color: var(--muted); transition: all .15s;
+  }
+  .tab.active { background: rgba(79,142,247,.15); border-color: var(--accent); color: var(--accent); }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  /* 검색 */
+  .search-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-family: var(--font);
+    font-size: 13px; padding: 9px 14px; outline: none; margin-bottom: 14px;
+  }
+  .search-input:focus { border-color: var(--accent); }
+
+  /* 빈 화면 */
+  .empty {
+    text-align: center; padding: 60px 20px; color: var(--muted);
+  }
+  .empty .icon { font-size: 40px; margin-bottom: 12px; }
+  .empty p { font-size: 14px; }
+  .empty .hint { font-size: 12px; margin-top: 6px; }
+
+  /* 로딩 */
+  #loading {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 999; flex-direction: column; gap: 16px;
+  }
+  .spinner {
+    width: 36px; height: 36px; border: 3px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* 고객사 바 — 클릭 가능 스타일 */
+  .client-bar-item {
+    border-radius: 8px;
+    padding: 8px;
+    margin: 0 -8px;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .client-bar-item:hover { background: rgba(79,142,247,.06); }
+  .client-bar-item.active { background: rgba(79,142,247,.1); outline: 1px solid rgba(79,142,247,.3); }
+  .client-bar-item .client-name { display: flex; align-items: center; gap: 6px; }
+  .client-chevron {
+    font-size: 10px; color: var(--muted);
+    transition: transform .2s;
+    margin-left: auto;
+  }
+  .client-bar-item.active .client-chevron { transform: rotate(90deg); color: var(--accent); }
+
+  /* 고객사 자재 상세 패널 */
+  .client-detail-panel {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height .35s cubic-bezier(.4,0,.2,1), opacity .25s;
+    opacity: 0;
+  }
+  .client-detail-panel.open {
+    max-height: 600px;
+    opacity: 1;
+  }
+  .client-detail-inner {
+    margin-top: 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .client-detail-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+  .client-detail-header span { font-size: 12px; font-weight: 700; color: var(--accent); }
+  .client-detail-header small { font-size: 11px; color: var(--muted); }
+  .detail-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .detail-table th {
+    text-align: left; padding: 7px 12px;
+    font-size: 10px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .05em;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .detail-table td { padding: 7px 12px; border-bottom: 1px solid rgba(46,51,71,.4); }
+  .detail-table tr:last-child td { border-bottom: none; }
+  .detail-table tr:hover td { background: rgba(255,255,255,.02); }
+  .detail-rank {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--surface2); font-size: 10px; font-weight: 800;
+    color: var(--muted);
+  }
+  .detail-rank.r1 { background: rgba(245,200,66,.15); color: #f5c842; }
+  .detail-rank.r2 { background: rgba(168,180,200,.12); color: #a8b4c8; }
+  .detail-rank.r3 { background: rgba(205,127,50,.12); color: #cd7f32; }
+  .detail-usage-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+  .detail-usage-fill { height: 100%; background: linear-gradient(90deg,var(--accent),var(--accent2)); border-radius: 2px; }
+
+  /* 반응형 */
+  @media (max-width: 900px) {
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .filterbar { padding: 12px 16px; }
+    .main { padding: 16px; }
+    header { padding: 12px 16px; }
+  }
+  @media (max-width: 540px) {
+    .kpi-row { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 로딩 -->
+<div id="loading">
+  <div class="spinner"></div>
+  <div style="font-size:13px;color:var(--muted)">대시보드 초기화 중…</div>
+</div>
+
+<!-- 헤더 -->
+<header>
+  <div class="brand">
+    <div class="logo">J2L FLOW</div>
+    <div style="color:var(--border)">|</div>
+    <div class="page-name">서비스자재창고 대시보드</div>
+  </div>
+  <div class="header-right">
+    <span class="last-update" id="last-update"></span>
+    <button class="upload-btn" onclick="document.getElementById('jsonFile').click()">
+      📁 JSON 파일 로드
+    </button>
+    <input type="file" id="jsonFile" accept=".json">
+  </div>
+</header>
+
+<!-- 필터바 -->
+<div class="filterbar">
+  <label>기간</label>
+  <input type="month" id="f-from">
+  <span style="color:var(--muted);font-size:13px">~</span>
+  <input type="month" id="f-to">
+  <div class="filter-sep"></div>
+  <label>고객사</label>
+  <select id="f-client"><option value="">전체</option></select>
+  <div class="filter-sep"></div>
+  <label>입출고</label>
+  <select id="f-inout">
+    <option value="">전체</option>
+    <option value="입고">입고</option>
+    <option value="출고">출고</option>
+  </select>
+  <div class="filter-sep"></div>
+  <button class="filter-reset" onclick="resetFilters()">✕ 초기화</button>
+</div>
+
+<!-- 메인 -->
+<div class="main" id="main-content">
+  <!-- 빈 상태 -->
+  <div class="empty" id="empty-state">
+    <div class="icon">📦</div>
+    <p>자재 데이터를 불러와 주세요</p>
+    <div class="hint">우측 상단 "JSON 파일 로드" 버튼을 클릭하거나,<br>converter 페이지에서 엑셀을 변환한 JSON을 로드하세요</div>
+  </div>
+
+  <!-- 대시보드 본체 (데이터 로드 후 표시) -->
+  <div id="dashboard" style="display:none">
+
+    <!-- KPI -->
+    <div class="kpi-row">
+      <div class="kpi blue">
+        <div class="kpi-label">총 출고 건수</div>
+        <div class="kpi-value" id="kpi-total">-</div>
+        <div class="kpi-sub" id="kpi-total-sub"></div>
+      </div>
+      <div class="kpi purple">
+        <div class="kpi-label">관리 자재 종류</div>
+        <div class="kpi-value" id="kpi-parts">-</div>
+        <div class="kpi-sub" id="kpi-parts-sub"></div>
+      </div>
+      <div class="kpi green">
+        <div class="kpi-label">고객사 수</div>
+        <div class="kpi-value" id="kpi-clients">-</div>
+        <div class="kpi-sub" id="kpi-clients-sub"></div>
+      </div>
+      <div class="kpi red">
+        <div class="kpi-label">재고 부족 품목</div>
+        <div class="kpi-value" id="kpi-shortage">-</div>
+        <div class="kpi-sub" id="kpi-shortage-sub"></div>
+      </div>
+    </div>
+
+    <!-- 월별 추이 -->
+    <div class="section-title">월별 추이</div>
+    <div class="grid-full">
+      <div class="card">
+        <div class="card-title">
+          <span>월별 입고 · 출고 수량 추이</span>
+          <select id="trend-client" style="font-size:12px;padding:4px 8px">
+            <option value="">전체 고객사</option>
+          </select>
+        </div>
+        <div class="chart-wrap" style="height:220px">
+          <canvas id="chart-trend"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- 고객사별 & Top 자재 -->
+    <div class="section-title">출고량 분석</div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">고객사별 총 출고량</div>
+        <div class="client-bar-list" id="client-bars"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">
+          <span>출고량 Top 자재</span>
+          <select id="top-n" style="font-size:12px;padding:4px 8px">
+            <option value="10">Top 10</option>
+            <option value="20">Top 20</option>
+            <option value="5">Top 5</option>
+          </select>
+        </div>
+        <div class="top-list" id="top-parts"></div>
+      </div>
+    </div>
+
+    <!-- 고객사별 자재 히트맵 -->
+    <div class="section-title">고객사 × 자재 분포</div>
+    <div class="grid-full">
+      <div class="card">
+        <div class="card-title">고객사별 자재 출고량 (상위 자재)</div>
+        <div class="chart-wrap" style="height:260px">
+          <canvas id="chart-client-part"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- 재고 현황 -->
+    <div class="section-title">재고 현황</div>
+    <div class="grid-full">
+      <div class="card">
+        <div class="card-title">
+          <span>적정재고 vs 현재고 비교</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="text" class="search-input" id="inv-search"
+              placeholder="자재명·코드 검색…"
+              style="margin:0;width:180px;padding:5px 10px;font-size:12px">
+            <div class="tabs" style="margin:0">
+              <div class="tab active" data-inv="all" onclick="setInvTab('all',this)">전체</div>
+              <div class="tab" data-inv="shortage" onclick="setInvTab('shortage',this)">부족</div>
+              <div class="tab" data-inv="excess" onclick="setInvTab('excess',this)">과잉</div>
+              <div class="tab" data-inv="ok" onclick="setInvTab('ok',this)">정상</div>
+            </div>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="inv-table">
+            <thead>
+              <tr>
+                <th>자재코드</th>
+                <th>자재명</th>
+                <th>고객사</th>
+                <th>출고량</th>
+                <th>적정재고</th>
+                <th>현재고</th>
+                <th>재고율</th>
+                <th>상태</th>
+              </tr>
+            </thead>
+            <tbody id="inv-tbody"></tbody>
+          </table>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-top:10px;text-align:right" id="inv-count"></div>
+      </div>
+    </div>
+
+  </div><!-- /dashboard -->
+</div><!-- /main -->
+
+<script>
+// ── 전역 상태 ──
+let ALL = [];
+let charts = {};
+
+// ── 샘플 데이터 ──
+function makeSample() {
+  const clients = ['쿠쿠전자', '드롱기코리아', '삼성전자', '위니아'];
+  const parts = [
+    { code:'P-1001', name:'필터 어셈블리 A형', cat:'필터류' },
+    { code:'P-1002', name:'필터 어셈블리 B형', cat:'필터류' },
+    { code:'P-2001', name:'히터 코일 유닛', cat:'발열체' },
+    { code:'P-2002', name:'서미스터 NTC', cat:'발열체' },
+    { code:'P-3001', name:'메인보드 PWB', cat:'PCB' },
+    { code:'P-3002', name:'디스플레이 기판', cat:'PCB' },
+    { code:'P-4001', name:'압력 스위치', cat:'스위치류' },
+    { code:'P-4002', name:'전원 스위치 조립체', cat:'스위치류' },
+    { code:'P-5001', name:'실리콘 패킹 세트', cat:'패킹/씰' },
+    { code:'P-5002', name:'O-링 φ25', cat:'패킹/씰' },
+    { code:'P-6001', name:'모터 어셈블리', cat:'모터' },
+    { code:'P-6002', name:'팬 블레이드', cat:'모터' },
+  ];
+  const stockTarget = { 'P-1001':200,'P-1002':150,'P-2001':80,'P-2002':120,
+    'P-3001':50,'P-3002':40,'P-4001':90,'P-4002':70,
+    'P-5001':300,'P-5002':250,'P-6001':60,'P-6002':100 };
+  const stockCurrent = { 'P-1001':45,'P-1002':180,'P-2001':78,'P-2002':30,
+    'P-3001':55,'P-3002':12,'P-4001':95,'P-4002':20,
+    'P-5001':410,'P-5002':200,'P-6001':15,'P-6002':110 };
+
+  const rows = [];
+  const now = new Date();
+  for (let m = 11; m >= 0; m--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - m, 1);
+    const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    clients.forEach(client => {
+      parts.forEach(p => {
+        const outQty = Math.round(10 + Math.random()*60);
+        const inQty  = Math.round(outQty * (0.8 + Math.random()*0.6)); // 입고는 출고의 80~140%
+        // 출고 행
+        rows.push({
+          date: `${ym}-01`,
+          client,
+          partCode: p.code,
+          partName: p.name,
+          category: p.cat,
+          inout: '출고',
+          usage: outQty,
+          stockTarget: stockTarget[p.code],
+          stockCurrent: stockCurrent[p.code],
+        });
+        // 입고 행
+        rows.push({
+          date: `${ym}-01`,
+          client,
+          partCode: p.code,
+          partName: p.name,
+          category: p.cat,
+          inout: '입고',
+          usage: inQty,
+          stockTarget: stockTarget[p.code],
+          stockCurrent: stockCurrent[p.code],
+        });
+      });
+    });
+  }
+  return rows;
+}
+
+// ── 초기화 ──
+window.addEventListener('load', () => {
+  ALL = makeSample();
+  initFilters();
+  render();
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('last-update').textContent = '샘플 데이터';
+});
+
+// JSON 로드
+document.getElementById('jsonFile').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      ALL = Array.isArray(data) ? data : [];
+      if (!ALL.length) { alert('데이터가 없습니다.'); return; }
+      initFilters();
+      render();
+      document.getElementById('last-update').textContent = `로드: ${f.name}`;
+    } catch(e) { alert('JSON 파싱 오류: ' + e.message); }
+  };
+  r.readAsText(f);
+});
+
+// ── 필터 초기화 ──
+function initFilters() {
+  const clients = [...new Set(ALL.map(d => d.client))].sort();
+  const months = ALL.map(d => (d.date||'').slice(0,7)).filter(Boolean).sort();
+
+  populateSelect('f-client', clients);
+  populateSelect('trend-client', clients);
+
+  if (months.length) {
+    document.getElementById('f-from').value = months[0];
+    document.getElementById('f-to').value = months[months.length - 1];
+  }
+
+  ['f-from','f-to','f-client','f-inout','trend-client'].forEach(id => {
+    document.getElementById(id).addEventListener('change', render);
+  });
+  document.getElementById('top-n').addEventListener('change', renderTopParts);
+  document.getElementById('inv-search').addEventListener('input', renderInventory);
+}
+
+function populateSelect(id, options) {
+  const el = document.getElementById(id);
+  const oldVal = el.value;
+  while (el.options.length > 1) el.remove(1);
+  options.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = opt.textContent = o;
+    el.appendChild(opt);
+  });
+  el.value = oldVal;
+}
+
+// ── 필터 적용 ──
+function filtered() {
+  const from   = document.getElementById('f-from').value;
+  const to     = document.getElementById('f-to').value;
+  const client = document.getElementById('f-client').value;
+  const inout  = document.getElementById('f-inout').value;
+
+  return ALL.filter(d => {
+    const ym = (d.date||'').slice(0,7);
+    if (from   && ym < from) return false;
+    if (to     && ym > to)   return false;
+    if (client && d.client !== client) return false;
+    if (inout  && (d.inout||'') !== inout) return false;
+    return true;
+  });
+}
+
+function resetFilters() {
+  const months = ALL.map(d => (d.date||'').slice(0,7)).filter(Boolean).sort();
+  document.getElementById('f-from').value = months[0] || '';
+  document.getElementById('f-to').value = months[months.length-1] || '';
+  document.getElementById('f-client').value = '';
+  document.getElementById('f-inout').value  = '';
+  render();
+}
+
+// ── 메인 렌더 ──
+function render() {
+  const data = filtered();
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('dashboard').style.display = '';
+
+  _openClientIdx = null;
+  renderKPI(data);
+  renderTrendChart(data);
+  renderClientBars(data);
+  renderTopParts(data);
+  renderClientPartChart(data);
+  renderInventory(data);
+}
+
+// ── KPI ──
+function renderKPI(data) {
+  const outData = data.filter(d => !d.inout || d.inout === '출고');
+  const totalOut = outData.reduce((s,d) => s + (d.usage||0), 0);
+  const parts   = new Set(data.map(d => d.partCode));
+  const clients = new Set(data.map(d => d.client));
+
+  // 재고 부족: 현재고 < 적정재고 * 0.5
+  const invMap   = buildInvMap(data);
+  const shortage = [...invMap.values()].filter(v => v.stockCurrent < v.stockTarget * 0.5).length;
+
+  document.getElementById('kpi-total').textContent     = totalOut.toLocaleString();
+  document.getElementById('kpi-total-sub').textContent = `${outData.length.toLocaleString()}건`;
+  document.getElementById('kpi-parts').textContent     = parts.size;
+  document.getElementById('kpi-parts-sub').textContent = `종류`;
+  document.getElementById('kpi-clients').textContent   = clients.size;
+  document.getElementById('kpi-clients-sub').textContent = `개 고객사`;
+  document.getElementById('kpi-shortage').textContent  = shortage;
+  document.getElementById('kpi-shortage-sub').textContent = '품목 주의 필요';
+}
+
+// ── 월별 추이 ──
+function renderTrendChart(data) {
+  const tClient = document.getElementById('trend-client').value;
+  let src = tClient ? data.filter(d => d.client === tClient) : data;
+
+  const byMonth = {};
+  src.forEach(d => {
+    const m = (d.date||'').slice(0,7);
+    if (!m) return;
+    if (!byMonth[m]) byMonth[m] = { in: 0, out: 0 };
+    const io = d.inout || '출고'; // inout 필드 없으면 출고로 간주
+    if (io === '입고') byMonth[m].in  += (d.usage||0);
+    else               byMonth[m].out += (d.usage||0);
+  });
+
+  const months = Object.keys(byMonth).sort();
+  const inVals  = months.map(m => byMonth[m].in);
+  const outVals = months.map(m => byMonth[m].out);
+
+  destroyChart('chart-trend');
+  const ctx = document.getElementById('chart-trend').getContext('2d');
+  charts['chart-trend'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: months.map(m => m.replace('-','년 ')+'월'),
+      datasets: [
+        {
+          label: '입고',
+          data: inVals,
+          borderColor: '#34c97b',
+          backgroundColor: 'rgba(52,201,123,.10)',
+          borderWidth: 2,
+          pointBackgroundColor: '#34c97b',
+          pointRadius: 4,
+          tension: .35,
+          fill: false,
+        },
+        {
+          label: '출고',
+          data: outVals,
+          borderColor: '#4f8ef7',
+          backgroundColor: 'rgba(79,142,247,.10)',
+          borderWidth: 2,
+          pointBackgroundColor: '#4f8ef7',
+          pointRadius: 4,
+          tension: .35,
+          fill: false,
+        },
+      ]
+    },
+    options: chartOpts()
+  });
+}
+
+// ── 고객사 바 ──
+let _clientBarData = []; // 클릭 이벤트용 캐시
+
+function renderClientBars(data) {
+  // 출고 데이터만 집계
+  const outData = data.filter(d => !d.inout || d.inout === '출고');
+  const byClient = {};
+  outData.forEach(d => {
+    if (!byClient[d.client]) byClient[d.client] = { total: 0, parts: {} };
+    byClient[d.client].total += (d.usage||0);
+    const pk = d.partCode;
+    if (!byClient[d.client].parts[pk]) byClient[d.client].parts[pk] = { code: pk, name: d.partName, usage: 0 };
+    byClient[d.client].parts[pk].usage += (d.usage||0);
+  });
+
+  const sorted = Object.entries(byClient).sort((a,b) => b[1].total - a[1].total);
+  const max = sorted[0]?.[1]?.total || 1;
+  _clientBarData = sorted;
+
+  document.getElementById('client-bars').innerHTML = sorted.map(([name, info], idx) => `
+    <div class="client-bar-item" id="cbar-${idx}" onclick="toggleClientDetail(${idx}, '${name.replace(/'/g,"\\'")}')">
+      <div class="client-bar-head">
+        <span class="client-name">
+          ${name}
+          <span class="client-chevron">▶</span>
+        </span>
+        <span class="client-val">${info.total.toLocaleString()}</span>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${(info.total/max*100).toFixed(1)}%"></div>
+      </div>
+      <div class="client-detail-panel" id="cpanel-${idx}">
+        <div class="client-detail-inner" id="cdetail-${idx}"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+let _openClientIdx = null;
+
+function toggleClientDetail(idx, clientName) {
+  const panel = document.getElementById(`cpanel-${idx}`);
+  const bar = document.getElementById(`cbar-${idx}`);
+  const isOpen = panel.classList.contains('open');
+
+  // 다른 패널 닫기
+  if (_openClientIdx !== null && _openClientIdx !== idx) {
+    const prev = document.getElementById(`cpanel-${_openClientIdx}`);
+    const prevBar = document.getElementById(`cbar-${_openClientIdx}`);
+    if (prev) prev.classList.remove('open');
+    if (prevBar) prevBar.classList.remove('active');
+  }
+
+  if (isOpen) {
+    panel.classList.remove('open');
+    bar.classList.remove('active');
+    _openClientIdx = null;
+    return;
+  }
+
+  // 내용 렌더링
+  const info = _clientBarData[idx]?.[1];
+  if (!info) return;
+  const parts = Object.values(info.parts).sort((a,b) => b.usage - a.usage);
+  const maxUsage = parts[0]?.usage || 1;
+
+  document.getElementById(`cdetail-${idx}`).innerHTML = `
+    <div class="client-detail-header">
+      <span>📦 ${clientName} · 자재 내역</span>
+      <small>총 ${parts.length}종 · 출고량 합계 ${info.total.toLocaleString()}</small>
+    </div>
+    <table class="detail-table">
+      <thead>
+        <tr>
+          <th>순위</th>
+          <th>자재코드</th>
+          <th>자재명</th>
+          <th>출고량</th>
+          <th>비율</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${parts.map((p, i) => {
+          const rankClass = i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : '';
+          const pct = (p.usage / info.total * 100).toFixed(1);
+          const barW = (p.usage / maxUsage * 100).toFixed(1);
+          return `
+            <tr>
+              <td><span class="detail-rank ${rankClass}">${i+1}</span></td>
+              <td style="color:var(--muted);font-size:11px">${p.code}</td>
+              <td style="font-weight:600">
+                ${p.name}
+                <div class="detail-usage-bar"><div class="detail-usage-fill" style="width:${barW}%"></div></div>
+              </td>
+              <td style="font-weight:700;color:var(--accent)">${p.usage.toLocaleString()}</td>
+              <td style="color:var(--muted)">${pct}%</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+
+  panel.classList.add('open');
+  bar.classList.add('active');
+  _openClientIdx = idx;
+}
+
+// ── Top 자재 ──
+function renderTopParts(data) {
+  if (!Array.isArray(data)) data = filtered();
+  const n = parseInt(document.getElementById('top-n').value) || 10;
+  // 출고만 집계
+  const outData = data.filter(d => !d.inout || d.inout === '출고');
+  const byPart = {};
+  outData.forEach(d => {
+    const k = d.partCode;
+    if (!byPart[k]) byPart[k] = { code: k, name: d.partName, total: 0 };
+    byPart[k].total += (d.usage||0);
+  });
+  const sorted = Object.values(byPart).sort((a,b) => b.total - a.total).slice(0, n);
+  const ranks = ['🥇','🥈','🥉'];
+  const rankClass = ['gold','silver','bronze'];
+
+  document.getElementById('top-parts').innerHTML = sorted.map((p, i) => `
+    <div class="top-item">
+      <div class="top-rank ${rankClass[i]||''}">${ranks[i] || `#${i+1}`}</div>
+      <div class="top-info">
+        <div class="top-code">${p.code}</div>
+        <div class="top-name">${p.name}</div>
+      </div>
+      <div class="top-qty">${p.total.toLocaleString()}</div>
+    </div>
+  `).join('');
+}
+
+// ── 고객사×자재 바 차트 ──
+function renderClientPartChart(data) {
+  // 출고만 집계
+  const outData = data.filter(d => !d.inout || d.inout === '출고');
+  const byPart = {};
+  outData.forEach(d => {
+    if (!byPart[d.partCode]) byPart[d.partCode] = { name: d.partName, total: 0 };
+    byPart[d.partCode].total += (d.usage||0);
+  });
+  const topParts = Object.entries(byPart).sort((a,b) => b[1].total - a[1].total).slice(0,8);
+  const clients = [...new Set(outData.map(d => d.client))].sort();
+
+  const COLORS = ['#4f8ef7','#a07cf5','#34c97b','#f5a623','#e8445a','#38d9f5','#f57caa','#9cf542'];
+  const datasets = clients.map((c, i) => {
+    const d2 = outData.filter(d => d.client === c);
+    return {
+      label: c,
+      data: topParts.map(([code]) => {
+        return d2.filter(d => d.partCode === code).reduce((s,d) => s+(d.usage||0), 0);
+      }),
+      backgroundColor: COLORS[i % COLORS.length],
+      borderRadius: 4,
+    };
+  });
+
+  destroyChart('chart-client-part');
+  const ctx = document.getElementById('chart-client-part').getContext('2d');
+  charts['chart-client-part'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: topParts.map(([,p]) => p.name.length>10 ? p.name.slice(0,10)+'…' : p.name),
+      datasets
+    },
+    options: {
+      ...chartOpts('usage'),
+      scales: {
+        x: { stacked: false, ticks: { color: '#7a80a0', font: { size: 11 } }, grid: { color: '#2e3347' } },
+        y: { stacked: false, ticks: { color: '#7a80a0', font: { size: 11 } }, grid: { color: '#2e3347' } }
+      }
+    }
+  });
+}
+
+// ── 재고 현황 ──
+let invTab = 'all';
+function setInvTab(tab, el) {
+  invTab = tab;
+  document.querySelectorAll('.tab[data-inv]').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderInventory();
+}
+
+function buildInvMap(data) {
+  const map = new Map();
+  data.forEach(d => {
+    const k = `${d.client}__${d.partCode}`;
+    if (!map.has(k)) {
+      map.set(k, {
+        client: d.client,
+        code: d.partCode,
+        name: d.partName,
+        usage: 0,           // 출고량만 합산
+        stockTarget: d.stockTarget || 0,
+        stockCurrent: d.stockCurrent || 0,
+      });
+    }
+    // 출고 행만 출고량 합산
+    if (!d.inout || d.inout === '출고') map.get(k).usage += (d.usage||0);
+    // 최신 재고 값 사용
+    if (d.stockTarget)  map.get(k).stockTarget  = d.stockTarget;
+    if (d.stockCurrent) map.get(k).stockCurrent = d.stockCurrent;
+  });
+  return map;
+}
+
+function renderInventory(data) {
+  if (!Array.isArray(data)) data = filtered();
+  const q = (document.getElementById('inv-search').value||'').toLowerCase();
+  const invMap = buildInvMap(data);
+  let rows = [...invMap.values()];
+
+  // 검색
+  if (q) rows = rows.filter(r => r.name.toLowerCase().includes(q) || r.code.toLowerCase().includes(q));
+
+  // 탭 필터
+  rows = rows.filter(r => {
+    const ratio = r.stockTarget > 0 ? r.stockCurrent / r.stockTarget : null;
+    if (invTab === 'shortage') return ratio !== null && ratio < 0.5;
+    if (invTab === 'excess')   return ratio !== null && ratio > 1.5;
+    if (invTab === 'ok')       return ratio !== null && ratio >= 0.5 && ratio <= 1.5;
+    return true;
+  });
+
+  // 정렬: 부족 먼저
+  rows.sort((a,b) => {
+    const ra = a.stockTarget > 0 ? a.stockCurrent / a.stockTarget : 1;
+    const rb = b.stockTarget > 0 ? b.stockCurrent / b.stockTarget : 1;
+    return ra - rb;
+  });
+
+  const tbody = document.getElementById('inv-tbody');
+  tbody.innerHTML = rows.map(r => {
+    const ratio = r.stockTarget > 0 ? r.stockCurrent / r.stockTarget : null;
+    const pct = ratio !== null ? Math.min(ratio * 100, 200) : null;
+    const fillW = pct !== null ? Math.min(pct / 2, 100) : 0; // /2 so 100%=full at ratio=2
+    let badgeClass = 'ok', badgeLabel = '정상';
+    let fillColor = 'var(--ok)';
+    if (ratio === null) { badgeClass = 'warn'; badgeLabel = '정보없음'; fillColor = 'var(--muted)'; }
+    else if (ratio < 0.3) { badgeClass = 'danger'; badgeLabel = '긴급부족'; fillColor = 'var(--danger)'; }
+    else if (ratio < 0.5) { badgeClass = 'danger'; badgeLabel = '부족'; fillColor = 'var(--danger)'; }
+    else if (ratio < 0.8) { badgeClass = 'warn'; badgeLabel = '주의'; fillColor = 'var(--warn)'; }
+    else if (ratio > 2.0) { badgeClass = 'over'; badgeLabel = '과잉'; fillColor = 'var(--accent2)'; }
+    else if (ratio > 1.5) { badgeClass = 'over'; badgeLabel = '과잉'; fillColor = 'var(--accent2)'; }
+
+    return `
+      <tr>
+        <td style="font-size:11px;color:var(--muted)">${r.code}</td>
+        <td style="font-weight:600">${r.name}</td>
+        <td>${r.client}</td>
+        <td>${r.usage.toLocaleString()}</td>
+        <td>${r.stockTarget > 0 ? r.stockTarget.toLocaleString() : '—'}</td>
+        <td style="font-weight:700;color:${fillColor}">${r.stockCurrent.toLocaleString()}</td>
+        <td>
+          <div class="stock-bar-wrap">
+            <div class="stock-bar">
+              <div class="stock-fill" style="width:${fillW}%;background:${fillColor}"></div>
+            </div>
+            <div class="stock-pct">${ratio !== null ? Math.round(ratio*100)+'%' : '—'}</div>
+          </div>
+        </td>
+        <td><span class="badge ${badgeClass}">${badgeLabel}</span></td>
+      </tr>
+    `;
+  }).join('');
+
+  document.getElementById('inv-count').textContent = `총 ${rows.length}건`;
+}
+
+// ── 차트 공통 옵션 ──
+function chartOpts() {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { labels: { color: '#7a80a0', font: { size: 11 }, boxWidth: 12 } },
+      tooltip: {
+        backgroundColor: '#22263a',
+        borderColor: '#2e3347',
+        borderWidth: 1,
+        titleColor: '#e8eaf0',
+        bodyColor: '#7a80a0',
+        callbacks: { label: ctx => ` ${ctx.dataset.label || ''}: ${ctx.parsed.y?.toLocaleString() || ''}` }
+      }
+    },
+    scales: {
+      x: { ticks: { color: '#7a80a0', font: { size: 11 } }, grid: { color: '#2e3347' } },
+      y: { ticks: { color: '#7a80a0', font: { size: 11 } }, grid: { color: '#2e3347' } }
+    }
+  };
+}
+
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+</script>
+</body>
+</html>
